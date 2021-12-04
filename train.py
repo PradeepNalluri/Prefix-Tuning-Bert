@@ -541,15 +541,21 @@ if __name__ == '__main__':
 
     parser.add_argument('--prepare_data', action="store_true", default=False,
                         help='if passed, will prepare data.')
+    
     parser.add_argument('--save_processed_data', action="store_true", default=False,
                         help='if passed, save the processed data.')
     parser.add_argument('--batch_size', type=int, help='batch_size ', default=128)
+    
     parser.add_argument('--custom', action="store_true", default=True,
                         help='if passed, use no custom.')
+    
     parser.add_argument('--epochs', type=int, help='epochs ', default=4)
+    
     parser.add_argument('--learning_rate', type=float, help='learning_rate ', default=0.005)
+    
     parser.add_argument('--save_model', action="store_true", default=True,
                         help='if passed, save model.')
+    
     parser.add_argument('--tuning_mode', type=str, choices=("light_weight", "fine_tune"),
                         help='tuning_mode', default="light_weight")
 
@@ -560,10 +566,15 @@ if __name__ == '__main__':
                         help='Name of the experiment', default="prefix_random_initializaition")
 
     parser.add_argument("--use_multi_gpu",type=bool,help="Use Multiple GPUs",default=False)
+    
     parser.add_argument("--phrase_for_init",type=str,help="If using custom initialization this will be used to initialize the prefix tokens",default=False)
+    
     parser.add_argument("--checkpoint",type=str,help="to checkpoint the model at each epoch",default=True)
+    
     parser.add_argument("--analyze_tokens",type=bool,help="Closest words in bert vocab in each epoch are extracted",default=False)
+    
     parser.add_argument("--test_file",type=str,help="test file that have to be used",default="test.csv")
+    
     parser.add_argument("--train_model",type=bool,help="True to train the model",default=True)
 
     args = parser.parse_args()
