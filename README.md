@@ -50,6 +50,7 @@ The following command trains the `light_weight` and  `fine_tune`:
 ### Training hyper-parameters
 ```
 optional arguments:
+optional arguments:
   -h, --help            show this help message and exit
   --prepare_data        if passed, will prepare data.
   --save_processed_data
@@ -63,6 +64,24 @@ optional arguments:
   --save_model          if passed, save model.
   --tuning_mode {light_weight,fine_tune}
                         tuning_mode
+  --model_save_directory MODEL_SAVE_DIRECTORY
+                        tuning_mode
+  --experiment_type EXPERIMENT_TYPE
+                        Name of the experiment
+  --use_multi_gpu USE_MULTI_GPU
+                        Use Multiple GPUs
+  --phrase_for_init PHRASE_FOR_INIT
+                        If using custom initialization this will be used to
+                        initialize the prefix tokens
+  --checkpoint CHECKPOINT
+                        to checkpoint the model at each epoch
+  --analyze_tokens ANALYZE_TOKENS
+                        Closest words in bert vocab in each epoch are
+                        extracted
+  --test_file TEST_FILE
+                        test file that have to be used
+  --train_model TRAIN_MODEL
+                        True to train the model
 ```
 
 ## Disclaimer
