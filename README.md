@@ -50,7 +50,6 @@ The following command trains the `light_weight` and  `fine_tune`:
 ### Training hyper-parameters
 ```
 optional arguments:
-optional arguments:
   -h, --help            show this help message and exit
   --train_data TRAIN_DATA
                         training dataset file that have to be used
