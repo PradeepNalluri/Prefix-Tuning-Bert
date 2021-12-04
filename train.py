@@ -103,15 +103,15 @@ def main(args):
     learning_rate = args.learning_rate
     save_model = args.save_model
     tuning_mode = args.tuning_mode
-    model_save_directory = args.tuning_mode
+    model_save_directory = args.model_save_directory+"_batch_"+str(batch_size)+"_lr_"+str(learning_rate)+"_experiment_"+tuning_mode+"/"
     prefix_tuning = True if "prefix" in tuning_mode else False
-    experiment = args.experiment_type
     use_multi_gpu = args.use_multi_gpu
     phrase_for_init = args.phrase_for_init
     checkpoint = args.checkpoint
     analyze_tokens = args.analyze_tokens
     test_file = args.test_file
     train_model = args.train_model
+    train_data = args.train_data
 
     if(prefix_tuning):
         prefix_length = args.prefix_length
@@ -124,7 +124,10 @@ def main(args):
     
     if(train_model):
         if(prepare_data):
-            data = pd.read_csv("train-balanced-sarcasm.csv")
+            try:
+                data = pd.read_csv(train_data)[:100]
+            except:
+                raise Exception("File not found: Make sure you download the dataset from https://www.kaggle.com/danofer/sarcasm/ The data should be kept in main folder")
             training_set,test_set = train_test_split(data,stratify=data[["label"]], test_size=0.1)
             del data
 
@@ -138,7 +141,6 @@ def main(args):
             labels = training_set[["id","label"]]
 
             tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
-            max_len = max(parallelize(tokenizer,sentences))
 
             sentences=training_set.comment.values
             labels = training_set.label.values
@@ -151,7 +153,7 @@ def main(args):
                 encoded_sentences = tokenizer.encode_plus(sent,add_special_tokens = True,max_length = 64,pad_to_max_length = True,
                 return_attention_mask = True,return_tensors = 'pt',)
                 
-                train_inputs_ids.append(encoded_sentences['train_inputs_ids'])
+                train_inputs_ids.append(encoded_sentences['input_ids'])
                 
                 training_attention_masks.append(encoded_sentences['attention_mask'])
 
@@ -198,8 +200,8 @@ def main(args):
         if prefix_tuning:
             model = SARCBertClassifier(config)
             model.update_network_sarc(2,device,freeze_bert_layers=True)
-            
-            if(experiment == "prefix_bottom_two_layers"):
+            model.to(device)
+            if(tuning_mode == "prefix_bottom_two_layers"):
                 for n,p in model.named_parameters():
                     if(n=="prefix_embeddings.weight" or "bert.encoder.layer.0." in n or "bert.encoder.layer.1." in n or n=="classifier.weight"):
                         p.requires_grad = True
@@ -208,7 +210,7 @@ def main(args):
                     if p.requires_grad:
                         print("Tuning:",n)
             
-            elif(experiment == "prefix_top_two_layers"):
+            elif(tuning_mode == "prefix_top_two_layers"):
                 for n,p in model.named_parameters():
                     if(n=="prefix_embeddings.weight" or "bert.encoder.layer.10." in n or "bert.encoder.layer.11." in n or n=="classifier.weight"):
                         p.requires_grad = True
@@ -217,7 +219,7 @@ def main(args):
                     if p.requires_grad:
                         print("Tuning:",n)
             
-            elif(experiment == "prefix_bert_embedding_layer"):
+            elif(tuning_mode == "prefix_bert_embedding_layer"):
                 for n,p in model.named_parameters():
                     if(n=="prefix_embeddings.weight" or "bert.embeddings.word_embeddings.weight" in n or n=="classifier.weight"):
                         p.requires_grad = True
@@ -226,7 +228,7 @@ def main(args):
                     if p.requires_grad:
                         print("Tuning:",n)
             
-            elif(experiment == "prefix_custom_initializaition"):
+            elif(tuning_mode == "prefix_custom_initializaition"):
                 del model
                 custom_embedding =  get_bert_embedding(phrase_for_init)
                 model = SARCBertClassifier(config)
@@ -240,7 +242,7 @@ def main(args):
                     if p.requires_grad:
                         print("Tuning:",n)
             
-            elif(experiment == "prefix_random_initializaition"):
+            elif(tuning_mode == "prefix_random_initializaition"):
                 for n,p in model.named_parameters():
                     if(n=="prefix_embeddings.weight" in n or n=="classifier.weight"):
                         p.requires_grad = True
@@ -254,7 +256,7 @@ def main(args):
         else:
             model = BertForSequenceClassification(config)
             
-            if(experiment == "noprefix_top_two_layers"):
+            if(tuning_mode == "noprefix_top_two_layers"):
                 for n,p in model.named_parameters():
                     if("bert.encoder.layer.10." in n or "bert.encoder.layer.11." in n or n=="classifier.weight"):
                         p.requires_grad = True
@@ -263,7 +265,7 @@ def main(args):
                     if p.requires_grad:
                         print("Tuning:",n)
             
-            elif(experiment == "noprefix_bottom_two_layers"):
+            elif(tuning_mode == "noprefix_bottom_two_layers"):
                 for n,p in model.named_parameters():    
                     if("bert.encoder.layer.0." in n or "bert.encoder.layer.1." in n or n=="classifier.weight"):
                         p.requires_grad = True
@@ -272,7 +274,7 @@ def main(args):
                     if p.requires_grad:
                         print("Tuning:",n)
         
-            elif(experiment == "noprefix_embedding_layer_update"):
+            elif(tuning_mode == "noprefix_embedding_layer_update"):
                 for n,p in model.named_parameters():    
                     if("bert.embeddings.word_embeddings.weight" in n or n=="classifier.weight"):
                         p.requires_grad = True
@@ -536,14 +538,16 @@ def main(args):
         
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Train Dependency Parsing Model')
+    parser = argparse.ArgumentParser(description='Train Bert Model - Prefix Tuning')
     # General training arguments
+    parser.add_argument("--train_data",type=str,help="training dataset file that have to be used",default="train-balanced-sarcasm.csv")
 
     parser.add_argument('--prepare_data', action="store_true", default=False,
                         help='if passed, will prepare data.')
     
     parser.add_argument('--save_processed_data', action="store_true", default=False,
                         help='if passed, save the processed data.')
+    
     parser.add_argument('--batch_size', type=int, help='batch_size ', default=128)
     
     parser.add_argument('--custom', action="store_true", default=True,
@@ -556,14 +560,15 @@ if __name__ == '__main__':
     parser.add_argument('--save_model', action="store_true", default=True,
                         help='if passed, save model.')
     
-    parser.add_argument('--tuning_mode', type=str, choices=("light_weight", "fine_tune"),
-                        help='tuning_mode', default="light_weight")
+    parser.add_argument('--prefix_length', type=int,  help='number of prefix tokens ', default=5)
 
     parser.add_argument('--model_save_directory', type=str,
-                        help='tuning_mode', default="temper")
+                        help='save the model to', default="model_store/")
 
-    parser.add_argument("--experiment_type", type=str,
-                        help='Name of the experiment', default="prefix_random_initializaition")
+    parser.add_argument("--tuning_mode", type=str,
+                        help='Name of the tuning_mode', choices=["prefix_bottom_two_layers","prefix_top_two_layers","prefix_bert_embedding_layer",
+                            "prefix_custom_initializaition","prefix_random_initializaition","noprefix_top_two_layers","noprefix_bottom_two_layers",
+                            "noprefix_embedding_layer_update"])
 
     parser.add_argument("--use_multi_gpu",type=bool,help="Use Multiple GPUs",default=False)
     
