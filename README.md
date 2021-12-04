@@ -68,7 +68,10 @@ optional arguments:
                         number of prefix tokens
   --model_save_directory MODEL_SAVE_DIRECTORY
                         save the model to
-  --tuning_mode {prefix_bottom_two_layers,prefix_top_two_layers,prefix_bert_embedding_layer,prefix_custom_initializaition,prefix_random_initializaition,noprefix_top_two_layers,noprefix_bottom_two_layers,noprefix_embedding_layer_update}
+  --tuning_mode {baseline_finetune,baseline_lightweight_finetune,prefix_bottom_two_layers,
+                  prefix_top_two_layers,prefix_bert_embedding_layer,
+                  prefix_custom_initializaition,prefix_random_initializaition,noprefix_top_two_layers,
+                  noprefix_bottom_two_layers,noprefix_embedding_layer_update}
                         Name of the tuning_mode
   --use_multi_gpu USE_MULTI_GPU
                         Use Multiple GPUs

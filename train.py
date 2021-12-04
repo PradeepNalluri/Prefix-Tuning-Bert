@@ -207,7 +207,7 @@ def main(args):
             model.to(device)
             if(tuning_mode == "prefix_bottom_two_layers"):
                 for n,p in model.named_parameters():
-                    if(n=="prefix_embeddings.weight" or "bert.encoder.layer.0." in n or "bert.encoder.layer.1." in n or n=="classifier.weight"):
+                    if(n=="prefix_embeddings.weight" or "bert.encoder.layer.0." in n or "bert.encoder.layer.1." in n or n=="classifier.weight" or n=="classifier.bias"):
                         p.requires_grad = True
                     else:
                         p.requires_grad = False
@@ -216,7 +216,7 @@ def main(args):
             
             elif(tuning_mode == "prefix_top_two_layers"):
                 for n,p in model.named_parameters():
-                    if(n=="prefix_embeddings.weight" or "bert.encoder.layer.10." in n or "bert.encoder.layer.11." in n or n=="classifier.weight"):
+                    if(n=="prefix_embeddings.weight" or "bert.encoder.layer.10." in n or "bert.encoder.layer.11." in n or n=="classifier.weight" or n=="classifier.bias"):
                         p.requires_grad = True
                     else:
                         p.requires_grad = False
@@ -225,7 +225,7 @@ def main(args):
             
             elif(tuning_mode == "prefix_bert_embedding_layer"):
                 for n,p in model.named_parameters():
-                    if(n=="prefix_embeddings.weight" or "bert.embeddings.word_embeddings.weight" in n or n=="classifier.weight"):
+                    if(n=="prefix_embeddings.weight" or "bert.embeddings.word_embeddings.weight" in n or n=="classifier.weight" or n=="classifier.bias"):
                         p.requires_grad = True
                     else:
                         p.requires_grad = False
@@ -239,7 +239,7 @@ def main(args):
                 model.update_network_sarc(2,device,freeze_bert_layers=True,custom_embedding=True,custom_embedding_vector=custom_embedding)
 
                 for n,p in model.named_parameters():
-                    if(n=="prefix_embeddings.weight" or n=="classifier.weight"):
+                    if(n=="prefix_embeddings.weight" or n=="classifier.weight" or n=="classifier.bias"):
                         p.requires_grad = True
                     else:
                         p.requires_grad = False
@@ -248,7 +248,7 @@ def main(args):
             
             elif(tuning_mode == "prefix_random_initializaition"):
                 for n,p in model.named_parameters():
-                    if(n=="prefix_embeddings.weight" in n or n=="classifier.weight"):
+                    if(n=="prefix_embeddings.weight" in n or n=="classifier.weight" or n=="classifier.bias"):
                         p.requires_grad = True
                     else:
                         p.requires_grad = False
@@ -262,7 +262,7 @@ def main(args):
             
             if(tuning_mode == "noprefix_top_two_layers"):
                 for n,p in model.named_parameters():
-                    if("bert.encoder.layer.10." in n or "bert.encoder.layer.11." in n or n=="classifier.weight"):
+                    if("bert.encoder.layer.10." in n or "bert.encoder.layer.11." in n or n=="classifier.weight" or n=="classifier.bias"):
                         p.requires_grad = True
                     else:
                         p.requires_grad = False
@@ -271,7 +271,7 @@ def main(args):
             
             elif(tuning_mode == "noprefix_bottom_two_layers"):
                 for n,p in model.named_parameters():    
-                    if("bert.encoder.layer.0." in n or "bert.encoder.layer.1." in n or n=="classifier.weight"):
+                    if("bert.encoder.layer.0." in n or "bert.encoder.layer.1." in n or n=="classifier.weight" or n=="classifier.bias"):
                         p.requires_grad = True
                     else:
                         p.requires_grad = False
@@ -280,13 +280,25 @@ def main(args):
         
             elif(tuning_mode == "noprefix_embedding_layer_update"):
                 for n,p in model.named_parameters():    
-                    if("bert.embeddings.word_embeddings.weight" in n or n=="classifier.weight"):
+                    if("bert.embeddings.word_embeddings.weight" in n or n=="classifier.weight" or n=="classifier.bias"):
                         p.requires_grad = True
                     else:
                         p.requires_grad = False
                     if p.requires_grad:
                         print("Tuning:",n)
-        
+
+            elif(tuning_mode=="baseline_finetune"):
+                for n,p in model.named_parameters():    
+                    p.requires_grad = True
+                    if p.requires_grad:
+                        print("Tuning:",n)
+            elif(tuning_mode=="baseline_lightweight_finetune"):
+                for n,p in model.named_parameters():    
+                    if(n=="classifier.weight" or n=="classifier.bias"):
+                        p.requires_grad = True
+                    if p.requires_grad:
+                        print("Tuning:",n)
+            
             else:
                 raise Exception("Exception: Unknow Experiment")
         
@@ -570,9 +582,10 @@ if __name__ == '__main__':
                         help='save the model to', default="model_store/")
 
     parser.add_argument("--tuning_mode", type=str,
-                        help='Name of the tuning_mode', default="prefix_random_initializaition",choices=["prefix_bottom_two_layers","prefix_top_two_layers","prefix_bert_embedding_layer",
-                            "prefix_custom_initializaition","prefix_random_initializaition","noprefix_top_two_layers","noprefix_bottom_two_layers",
-                            "noprefix_embedding_layer_update"])
+                        help='Name of the tuning_mode', default="prefix_random_initializaition",choices=["prefix_bottom_two_layers","prefix_top_two_layers",
+                        "prefix_bert_embedding_layer","prefix_custom_initializaition","prefix_random_initializaition",
+                        "noprefix_top_two_layers","noprefix_bottom_two_layers","baseline_finetune",
+                        "baseline_lightweight_finetune","noprefix_embedding_layer_update"])
 
     parser.add_argument("--use_multi_gpu",type=bool,help="Use Multiple GPUs",default=False)
     
