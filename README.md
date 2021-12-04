@@ -21,7 +21,7 @@ pip3 install -r requirements.txt
 5. Download Sarcasm Data:
 ```
 Need to download sarcasm data from kaggle: https://www.kaggle.com/danofer/sarcasm/
-The data should be kept in main folder
+The file can be passed as an input argument during runtime
 ```
 
 ## Modeling Files
