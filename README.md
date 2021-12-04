@@ -16,6 +16,7 @@ conda activate nlp-project
 4. Install the requirements:
 ```
 pip3 install -r requirements.txt
+cd transformers; pip install -e .;
 ```
 
 5. Download Sarcasm Data:
