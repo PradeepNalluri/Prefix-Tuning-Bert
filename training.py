@@ -7,7 +7,7 @@ import multiprocessing as mp
 from torch.utils.data import TensorDataset, random_split
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from transformers import BertTokenizer
-from transformers import BertForSequenceClassification, AdamW, BertConfig
+from transformers import BertForSequenceClassification, AdamW, BertConfig,BertModel
 from transformers import get_linear_schedule_with_warmup
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -27,6 +27,29 @@ import itertools
 import json
 import argparse
 
+def get_bert_embedding(word):
+    """
+    Create embedding for phrases this can be used to initialize the prefix embeddings based on phrases
+    """
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+    tokenized_res = tokenizer.encode_plus(
+                            word,                      # Sentence to encode.
+                            add_special_tokens = True, # Add '[CLS]' and '[SEP]'
+                            max_length = 5,           # Pad & truncate all sentences.
+                            pad_to_max_length = True,
+                            return_attention_mask = True,   # Construct attn. masks.
+                            return_tensors = 'pt',     # Return pytorch tensors.
+                       )
+    embed_model = BertModel.from_pretrained('bert-base-uncased')
+    embed_model.eval()
+    embedding = embed_model(**tokenized_res)
+    embedding = embedding.last_hidden_state.detach()#[:,tokenized_res['attention_mask']]    
+    required_embedding = embedding[0][tokenized_res['attention_mask'][0]==1,:]
+    required_embedding = required_embedding.mean(dim=0)
+    del embed_model
+    del embedding 
+    return required_embedding
+
 def parallelize(function_pointer,list_to_parallelize,NUM_CORE=2*mp.cpu_count()):
     '''
     Prallel apply the given function to the list the numeber of process will 
@@ -42,7 +65,7 @@ def parallelize(function_pointer,list_to_parallelize,NUM_CORE=2*mp.cpu_count()):
     print("Executed in:",end-start)
     return results
 
-def find_max_length(sentences):
+def find_max_length(sentences,tokenizer):
     """
     Find the max length of the senteces
     """
@@ -75,12 +98,20 @@ def main(args):
     prepare_data = args.prepare_data
     save_processed_data = args.save_processed_data
     batch_size = args.batch_size
-    custom = args.custom
     epochs = args.epochs
     learning_rate = args.learning_rate
     save_model = args.save_model
     tuning_mode = args.tuning_mode
     model_save_directory = args.tuning_mode
+    prefix_tuning = True if "prefix" in tuning_mode else False
+    experiment = args.experiment_type
+    use_multi_gpu = args.use_multi_gpu
+    phrase_for_init = args.phrase_for_init
+    checkpoint = args.checkpoint
+    analyze_tokens = args.analyze_tokens
+
+    if(prefix_tuning):
+        prefix_length = args.prefix_length
 
     if torch.cuda.is_available():    
         device = torch.device("cuda")
@@ -101,10 +132,9 @@ def main(args):
         training_set.rename(columns={"index":"id"},inplace=True)
         sentences = training_set[["id","comment"]]
         labels = training_set[["id","label"]]
-        
-        max_len = max(parallelize(tokenize,sentences))
 
         tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+        max_len = max(parallelize(tokenizer,sentences))
 
         sentences=training_set.comment.values
         labels = training_set.label.values
@@ -114,7 +144,7 @@ def main(args):
 
         #Tokenizing the sentences
         for sent in tqdm(sentences):
-            encoded_dict = tokenizer.encode_plus(sent,add_special_tokens = True,max_length = 64,pad_to_max_length = True,
+            encoded_sentences = tokenizer.encode_plus(sent,add_special_tokens = True,max_length = 64,pad_to_max_length = True,
             return_attention_mask = True,return_tensors = 'pt',)
             
             train_inputs_ids.append(encoded_sentences['train_inputs_ids'])
@@ -152,13 +182,105 @@ def main(args):
 
     validation_dataloader = DataLoader(validation_data,sampler = SequentialSampler(validation_data), batch_size = batch_size,)
    
-    if custom:
-        model = SARCBertClassifier.from_pretrained("bert-base-uncased",num_labels = 2,output_attentions = False,output_hidden_states = False,)
-        model.update_network_sarc(2,device,freeze_bert_layers=tuning_mode=="light_weight")
-    else:
-        model = BertForSequenceClassification.from_pretrained("bert-base-uncased",num_labels = 2,output_attentions = False,output_hidden_states = False,)
+    config = BertConfig.from_pretrained("bert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
+        num_labels = 2, # The number of output labels--2 for binary classification.
+        output_attentions = False, # Whether the model returns attentions weights.
+        output_hidden_states = False, # Whether the model returns all hidden-states.
+        )
+    if(prefix_tuning):
+       config.prefix_length = prefix_length
+       phrase_for_init = phrase_for_init
+    
+    if prefix_tuning:
+        model = SARCBertClassifier(config)
+        model.update_network_sarc(2,device,freeze_bert_layers=True)
+        
+        if(experiment == "prefix_bottom_two_layers"):
+            for n,p in model.named_parameters():
+                if(n=="prefix_embeddings.weight" or "bert.encoder.layer.0." in n or "bert.encoder.layer.1." in n or n=="classifier.weight"):
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                if p.requires_grad:
+                    print("Tuning:",n)
+        
+        elif(experiment == "prefix_top_two_layers"):
+            for n,p in model.named_parameters():
+                if(n=="prefix_embeddings.weight" or "bert.encoder.layer.10." in n or "bert.encoder.layer.11." in n or n=="classifier.weight"):
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                if p.requires_grad:
+                    print("Tuning:",n)
+        
+        elif(experiment == "prefix_bert_embedding_layer"):
+            for n,p in model.named_parameters():
+                if(n=="prefix_embeddings.weight" or "bert.embeddings.word_embeddings.weight" in n or n=="classifier.weight"):
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                if p.requires_grad:
+                    print("Tuning:",n)
+        
+        elif(experiment == "prefix_custom_initializaition"):
+            del model
+            custom_embedding =  get_bert_embedding(phrase_for_init)
+            model = SARCBertClassifier(config)
+            model.update_network_sarc(2,device,freeze_bert_layers=True,custom_embedding=True,custom_embedding_vector=custom_embedding)
 
-    if(torch.cuda.device_count()>1):
+            for n,p in model.named_parameters():
+                if(n=="prefix_embeddings.weight" or n=="classifier.weight"):
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                if p.requires_grad:
+                    print("Tuning:",n)
+        
+        elif(experiment == "prefix_random_initializaition"):
+            for n,p in model.named_parameters():
+                if(n=="prefix_embeddings.weight" in n or n=="classifier.weight"):
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                if p.requires_grad:
+                    print("Tuning:",n)
+
+        else:
+            raise Exception("Exception: Unknow Experiment")
+    else:
+        model = BertForSequenceClassification(config)
+        
+        if(experiment == "noprefix_top_two_layers"):
+            for n,p in model.named_parameters():
+                if("bert.encoder.layer.10." in n or "bert.encoder.layer.11." in n or n=="classifier.weight"):
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                if p.requires_grad:
+                    print("Tuning:",n)
+        
+        elif(experiment == "noprefix_bottom_two_layers"):
+            for n,p in model.named_parameters():    
+                if("bert.encoder.layer.0." in n or "bert.encoder.layer.1." in n or n=="classifier.weight"):
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                if p.requires_grad:
+                    print("Tuning:",n)
+    
+        elif(experiment == "noprefix_embedding_layer_update"):
+            for n,p in model.named_parameters():    
+                if("bert.embeddings.word_embeddings.weight" in n or n=="classifier.weight"):
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                if p.requires_grad:
+                    print("Tuning:",n)
+    
+        else:
+            raise Exception("Exception: Unknow Experiment")
+    
+    if(use_multi_gpu and torch.cuda.device_count()>1):
         print("Parallelizing Model")
         model = nn.DataParallel(model)
         model.to(device)
@@ -192,11 +314,23 @@ def main(args):
         total_training_loss = 0
         correct_preds, total_predictions = 0, 0
         generator_tqdm = tqdm(train_dataloader)
-            
+        if(checkpoint):
+            output_dir = model_save_directory+"_checkpoint/"
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            print("Saving model to %s" % output_dir)
+            model_to_save = model.module if hasattr(model, 'module') else model  # Take care of distributed/parallel training
+            model_to_save.save_pretrained(output_dir) 
+            if(analyze_tokens):
+                with open(output_dir+"prefix_embed_matching_words_epoch_"+str(epoch_i)+".json", 'w') as fp:
+                    json.dump(model.closest_matching_bert_model(), fp)           
         for step, batch in enumerate(generator_tqdm):
-
-            b_input_ids = batch[0].to(device)
-            b_input_mask = batch[1].to(device)
+            if(prefix_length):
+                b_input_ids = torch.cat((torch.arange(0, config.prefix_length).expand(batch[0].shape[0], config.prefix_length),batch[0]),1).to(device)
+                b_input_mask = torch.cat((torch.ones(config.prefix_length).expand(batch[1].shape[0], config.prefix_length),batch[1]),1).to(device)
+            else:
+                b_input_ids = batch[0].to(device)
+                b_input_mask = batch[1].to(device)
             b_labels = batch[2].to(device)
             
             model.zero_grad()        
@@ -242,8 +376,13 @@ def main(args):
         nb_eval_steps = 0
         
         for batch in tqdm(validation_dataloader):
-            b_input_ids = batch[0].to(device)
-            b_input_mask = batch[1].to(device)
+            if(prefix_tuning):
+                b_input_ids = torch.cat((torch.arange(0, config.prefix_length).expand(batch[0].shape[0], config.prefix_length),batch[0]),1).to(device)
+
+                b_input_mask = torch.cat((torch.ones(config.prefix_length).expand(batch[1].shape[0], config.prefix_length),batch[1]),1).to(device)
+            else:
+                b_input_ids=batch[0].to(device)
+                b_input_mask=batch[1].to(device)
             b_labels = batch[2].to(device)
             with torch.no_grad():
                 result = model(b_input_ids, 
