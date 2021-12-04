@@ -52,6 +52,8 @@ The following command trains the `light_weight` and  `fine_tune`:
 optional arguments:
 optional arguments:
   -h, --help            show this help message and exit
+  --train_data TRAIN_DATA
+                        training dataset file that have to be used
   --prepare_data        if passed, will prepare data.
   --save_processed_data
                         if passed, save the processed data.
@@ -62,12 +64,12 @@ optional arguments:
   --learning_rate LEARNING_RATE
                         learning_rate
   --save_model          if passed, save model.
-  --tuning_mode {light_weight,fine_tune}
-                        tuning_mode
+  --prefix_length PREFIX_LENGTH
+                        number of prefix tokens
   --model_save_directory MODEL_SAVE_DIRECTORY
-                        tuning_mode
-  --experiment_type EXPERIMENT_TYPE
-                        Name of the experiment
+                        save the model to
+  --tuning_mode {prefix_bottom_two_layers,prefix_top_two_layers,prefix_bert_embedding_layer,prefix_custom_initializaition,prefix_random_initializaition,noprefix_top_two_layers,noprefix_bottom_two_layers,noprefix_embedding_layer_update}
+                        Name of the tuning_mode
   --use_multi_gpu USE_MULTI_GPU
                         Use Multiple GPUs
   --phrase_for_init PHRASE_FOR_INIT

@@ -103,7 +103,11 @@ def main(args):
     learning_rate = args.learning_rate
     save_model = args.save_model
     tuning_mode = args.tuning_mode
-    model_save_directory = args.model_save_directory+"_batch_"+str(batch_size)+"_lr_"+str(learning_rate)+"_experiment_"+tuning_mode+"/"
+    print(tuning_mode)
+    print("dasda",batch_size)
+    print("learning_rate",learning_rate)
+    print("epocjs",epochs)
+    model_save_directory = "model_experiment_"+tuning_mode+"_batch_"+str(batch_size)+"_lr_"+str(learning_rate)+"_epoch_"+str(epochs)+"/"
     prefix_tuning = True if "prefix" in tuning_mode else False
     use_multi_gpu = args.use_multi_gpu
     phrase_for_init = args.phrase_for_init
@@ -125,7 +129,7 @@ def main(args):
     if(train_model):
         if(prepare_data):
             try:
-                data = pd.read_csv(train_data)[:100]
+                data = pd.read_csv(train_data)
             except:
                 raise Exception("File not found: Make sure you download the dataset from https://www.kaggle.com/danofer/sarcasm/ The data should be kept in main folder")
             training_set,test_set = train_test_split(data,stratify=data[["label"]], test_size=0.1)
@@ -540,7 +544,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Train Bert Model - Prefix Tuning')
     # General training arguments
-    parser.add_argument("--train_data",type=str,help="training dataset file that have to be used",default="train-balanced-sarcasm.csv")
+    parser.add_argument("--train_data",type=str,help="training dataset file that have to be used",default="sample_train.csv")
 
     parser.add_argument('--prepare_data', action="store_true", default=False,
                         help='if passed, will prepare data.')
@@ -548,14 +552,14 @@ if __name__ == '__main__':
     parser.add_argument('--save_processed_data', action="store_true", default=False,
                         help='if passed, save the processed data.')
     
-    parser.add_argument('--batch_size', type=int, help='batch_size ', default=128)
+    parser.add_argument('--batch_size', type=int, help='batch_size ', default=64)
     
     parser.add_argument('--custom', action="store_true", default=True,
                         help='if passed, use no custom.')
     
     parser.add_argument('--epochs', type=int, help='epochs ', default=4)
     
-    parser.add_argument('--learning_rate', type=float, help='learning_rate ', default=0.005)
+    parser.add_argument('--learning_rate', type=float, help='learning_rate ', default=2e-5)
     
     parser.add_argument('--save_model', action="store_true", default=True,
                         help='if passed, save model.')
@@ -566,7 +570,7 @@ if __name__ == '__main__':
                         help='save the model to', default="model_store/")
 
     parser.add_argument("--tuning_mode", type=str,
-                        help='Name of the tuning_mode', choices=["prefix_bottom_two_layers","prefix_top_two_layers","prefix_bert_embedding_layer",
+                        help='Name of the tuning_mode', default="prefix_random_initializaition",choices=["prefix_bottom_two_layers","prefix_top_two_layers","prefix_bert_embedding_layer",
                             "prefix_custom_initializaition","prefix_random_initializaition","noprefix_top_two_layers","noprefix_bottom_two_layers",
                             "noprefix_embedding_layer_update"])
 
@@ -578,7 +582,7 @@ if __name__ == '__main__':
     
     parser.add_argument("--analyze_tokens",type=bool,help="Closest words in bert vocab in each epoch are extracted",default=False)
     
-    parser.add_argument("--test_file",type=str,help="test file that have to be used",default="test.csv")
+    parser.add_argument("--test_file",type=str,help="test file that have to be used",default="sample_test.csv")
     
     parser.add_argument("--train_model",type=bool,help="True to train the model",default=True)
 
