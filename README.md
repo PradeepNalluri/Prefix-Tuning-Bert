@@ -31,14 +31,21 @@ The main code to build models is contained in only one file:
 
 - `train.py`
 
-There are two kinds of models in this code: `light_weight` and  `fine_tune`
-
-- The light_weight model freezes the LM and only trains the last added  layer
-- The fine_tune model trains full LM layers
+There are several tuning_modes that can be chosen from to train the models 
+baseline_finetune
+baseline_lightweight_finetune
+prefix_bottom_two_layers
+prefix_top_two_layers
+prefix_bert_embedding_layer
+prefix_custom_initializaition
+prefix_random_initializaition
+noprefix_top_two_layers
+noprefix_bottom_two_layers
+noprefix_embedding_layer_update
 
 ### Training command:
 
-The following command trains the `light_weight` and  `fine_tune`:
+The following command trains:
 
 ```
 #By default it trains prefix tuning with random embedding initializaition with 5 tokens with below code:
