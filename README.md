@@ -32,26 +32,30 @@ The main code to build models is contained in only one file:
 - `train.py`
 
 There are several tuning_modes that can be chosen from to train the models 
-baseline_finetune
-baseline_lightweight_finetune
-prefix_bottom_two_layers
-prefix_top_two_layers
-prefix_bert_embedding_layer
-prefix_custom_initializaition
-prefix_random_initializaition
-noprefix_top_two_layers
-noprefix_bottom_two_layers
-noprefix_embedding_layer_update
+* baseline_finetune
+* baseline_lightweight_finetune
+* prefix_bottom_two_layers
+* prefix_top_two_layers
+* prefix_bert_embedding_layer
+* prefix_custom_initializaition
+* prefix_random_initializaition
+* noprefix_top_two_layers
+* noprefix_bottom_two_layers
+* noprefix_embedding_layer_update
 
 ### Training command:
 
-The following command trains:
+Below are some of the flavours of training command:
 
 ```
-#By default it trains prefix tuning with random embedding initializaition with 5 tokens with below code:
+#By default train.py trains prefix tuning with random embedding initializaition of 5 tokens:
+# However all the parameters are configurable with the arguments described in hyper-parameters section.
+
+#Default training:
 python train.py
 
-# However all the parameters are configurable with the arguments described below.
+#Training with different tuning mode
+python train.py --tuning_mode noprefix_top_two_layers
 ```
 ### Training hyper-parameters
 ```
