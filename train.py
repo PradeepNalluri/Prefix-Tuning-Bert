@@ -103,10 +103,6 @@ def main(args):
     learning_rate = args.learning_rate
     save_model = args.save_model
     tuning_mode = args.tuning_mode
-    print(tuning_mode)
-    print("dasda",batch_size)
-    print("learning_rate",learning_rate)
-    print("epocjs",epochs)
     model_save_directory = "model_experiment_"+tuning_mode+"_batch_"+str(batch_size)+"_lr_"+str(learning_rate)+"_epoch_"+str(epochs)+"/"
     prefix_tuning = True if "prefix" in tuning_mode else False
     use_multi_gpu = args.use_multi_gpu
@@ -114,8 +110,9 @@ def main(args):
     checkpoint = args.checkpoint
     analyze_tokens = args.analyze_tokens
     test_file = args.test_file
-    train_model = args.train_model
+    train_model = args.evaluate
     train_data = args.train_data
+    model_directory_to_use = args.saved_model_location
 
     if(prefix_tuning):
         prefix_length = args.prefix_length
@@ -467,11 +464,22 @@ def main(args):
             print("Models Saved")
         
     else:
+        if(not model_directory_to_use):
+            raise Exception("Must give the folder location of the pretrained model during evaluation")
         if(prefix_tuning):
-            output_dir = model_save_directory
-            config = BertConfig.from_pretrained(output_dir,)
-            model = SARCBertClassifier.from_pretrained(output_dir)
-
+            print("Loading Model from: " , model_directory_to_use)
+            output_dir = model_directory_to_use
+            config = BertConfig.from_pretrained(output_dir,output_hidden_states=True, output_attentions=True)
+            config.user_embeddings=False
+            config.prefix_length = prefix_length
+            model = SARCBertClassifier.from_pretrained(output_dir,config=config,)
+        else:
+            model = BertForSequenceClassification.from_pretrained(model_directory_to_use)
+        
+        model.to(device)
+        model.prefix_length = prefix_length
+        model.run_device = device
+        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
     if(not prepare_data):
         test_set = pd.read_csv(test_file)
     
@@ -597,7 +605,9 @@ if __name__ == '__main__':
     
     parser.add_argument("--test_file",type=str,help="test file that have to be used",default="sample_test.csv")
     
-    parser.add_argument("--train_model",type=bool,help="True to train the model",default=True)
+    parser.add_argument("--evaluate",action="store_false",help="True to train the model",default=True)
+
+    parser.add_argument("--saved_model_location",type=str,help="Loaction of the stored model, must be used when only evaluation is called")
 
     args = parser.parse_args()
 
