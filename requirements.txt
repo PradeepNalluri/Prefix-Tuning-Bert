@@ -143,8 +143,6 @@ torchviz==0.0.2
 tornado==6.1
 tqdm==4.62.3
 traitlets==4.3.3
-# Editable install with no version control (transformers==4.13.0.dev0)
--e /gpfs/projects/ZhangYGroup/aapilab/BERT_EXPERIMENT/CustomPrefixTuning/transformers/src
 typing-extensions==3.7.4.3
 urllib3==1.26.6
 vaderSentiment==3.3.2
