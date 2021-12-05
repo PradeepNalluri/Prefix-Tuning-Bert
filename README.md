@@ -45,7 +45,7 @@ There are several tuning_modes that can be chosen from to train the models
 
 ### Training command:
 
-Below are some of the flavours of training command:
+Below are some of the examples of training command:
 
 ```
 #By default train.py trains prefix tuning with random embedding initializaition of 5 tokens:
