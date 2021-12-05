@@ -41,12 +41,10 @@ There are two kinds of models in this code: `light_weight` and  `fine_tune`
 The following command trains the `light_weight` and  `fine_tune`:
 
 ```
-#By default it trains light weight with below code:
-1. python train.py
+#By default it trains prefix tuning with random embedding initializaition with 5 tokens with below code:
+python train.py
 
-#Second option is with fine_tuning
-2. python main.py --tuning_mode 'fine_tune'
-
+# However all the parameters are configurable with the arguments described below.
 ```
 ### Training hyper-parameters
 ```
