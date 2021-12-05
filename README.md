@@ -48,13 +48,13 @@ There are several tuning_modes that can be chosen from to train the models
 Below are some of the examples of training command:
 
 ```
-#By default train.py trains prefix tuning with random embedding initializaition of 5 tokens:
+# By default train.py trains prefix tuning with random embedding initializaition of 5 tokens:
 # However all the parameters are configurable with the arguments described in hyper-parameters section.
 
-#Default training:
+# Default training:
 python train.py
 
-#Training with different tuning mode
+# Training with different tuning mode
 python train.py --tuning_mode noprefix_top_two_layers
 ```
 ### Training hyper-parameters
