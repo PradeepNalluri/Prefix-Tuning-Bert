@@ -110,7 +110,7 @@ def main(args):
     checkpoint = args.checkpoint
     analyze_tokens = args.analyze_tokens
     test_file = args.test_file
-    train_model = args.evaluate
+    train_model = not args.evaluate
     train_data = args.train_data
     model_directory_to_use = args.saved_model_location
 
@@ -605,7 +605,7 @@ if __name__ == '__main__':
     
     parser.add_argument("--test_file",type=str,help="test file that have to be used",default="sample_test.csv")
     
-    parser.add_argument("--evaluate",action="store_false",help="True to train the model",default=True)
+    parser.add_argument("--evaluate",action="store_true",help="To run the script in Evaluation mode",default=False)
 
     parser.add_argument("--saved_model_location",type=str,help="Loaction of the stored model, must be used when only evaluation is called")
 

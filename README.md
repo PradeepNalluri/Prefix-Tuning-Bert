@@ -83,8 +83,12 @@ optional arguments:
                         extracted
   --test_file TEST_FILE
                         test file that have to be used
-  --train_model TRAIN_MODEL
-                        True to train the model
+  
+  --evaluate            To run the script in Evaluation mode
+  
+  --saved_model_location SAVED_MODEL_LOCATION
+                        Loaction of the stored model, must be used when only
+                        evaluation is called
 ```
 
 ## Disclaimer
