@@ -566,7 +566,7 @@ if __name__ == '__main__':
     # General training arguments
     parser.add_argument("--train_data",type=str,help="training dataset file that have to be used",default="sample_train.csv")
 
-    parser.add_argument('--prepare_data', action="store_true", default=False,
+    parser.add_argument('--prepare_data', action="store_true", default=True,
                         help='if passed, will prepare data.')
     
     parser.add_argument('--save_processed_data', action="store_true", default=False,
